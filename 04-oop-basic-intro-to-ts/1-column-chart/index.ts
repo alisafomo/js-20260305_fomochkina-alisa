@@ -12,6 +12,7 @@ export default class ColumnChart {
   public element: HTMLElement | null;
   public chartHeight = 50;
 
+  private body: HTMLElement | null;
   private data: number[];
   private label: string;
   private value: number;
@@ -25,6 +26,22 @@ export default class ColumnChart {
     this.link = link;
     this.formatHeading = formatHeading;
     this.element = createElement(this.template());
+    this.body = this.element.querySelector('[data-element="body"]');
+  }
+
+  private getColumnBody(): string {
+    const maxValue = Math.max(...this.data, 0);
+    const scale = maxValue ? this.chartHeight / maxValue : 0;
+
+    const columns = this.data
+      .map(item => {
+        const value = Math.floor(item * scale);
+        const percent = maxValue ? `${(item / maxValue * 100).toFixed(0)}%` : '0%';
+
+        return `<div style="--value: ${value}" data-tooltip="${percent}"></div>`;
+      })
+      .join('');
+    return columns;
   }
 
   private template(): string {
@@ -42,13 +59,7 @@ export default class ColumnChart {
             ${this.formatHeading(this.value)}
           </div>
           <div data-element="body" class="column-chart__chart">
-            ${this.data
-              .map(item => {
-                const value = Math.floor(item * scale);
-                const percent = maxValue ? `${(item / maxValue * 100).toFixed(0)}%` : '0%';
-                return `<div style="--value: ${value}" data-tooltip="${percent}"></div>`;
-              })
-              .join("")}
+            ${this.getColumnBody()}
           </div>
         </div>
       </div>
@@ -59,29 +70,16 @@ export default class ColumnChart {
     if (!this.element) return;
     this.data = data;
 
-    const chart = document.querySelector('.column-chart');
+    if (!this.body) return;    
+
     if (this.data.length === 0){
-      chart?.classList.add('column-chart_loading');
+      this.body.innerHTML = '';
+      this.element?.classList.add('column-chart_loading');
       return;
     }
 
-    const body = this.element.querySelector('[data-element="body"]');
-    if (!body) return;
-
-    const maxValue = Math.max(...this.data, 0);
-    const scale = maxValue ? this.chartHeight / maxValue : 0;
-
-    const columns = this.data
-      .map(item => {
-        const value = Math.floor(item * scale);
-        const percent = maxValue ? `${(item / maxValue * 100).toFixed(0)}%` : '0%';
-
-        return `<div style="--value: ${value}" data-tooltip="${percent}"></div>`;
-      })
-      .join('');
-
-    body.innerHTML = columns;
-    chart?.classList.remove('column-chart_loading');
+    this.body.innerHTML = this.getColumnBody();
+    this.element?.classList.remove('column-chart_loading');
   }
 
   public remove(): void{
